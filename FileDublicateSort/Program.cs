@@ -9,50 +9,54 @@ using System.Xml.Serialization;
 
 namespace FileDublicateSort
 {
-    [Serializable]
-    public class Files
-    {
-        public List<string> fileCopies = new List<string>();
-        public List<string> fileOriginals = new List<string>();
 
+    [Serializable]
+    public class FileTree
+    {
+        public string dirName;
+        public List<FileTree> folders = new List<FileTree>();
+        public List<string> files = new List<string>();
+
+        public FileTree()
+        {
+        }
+
+        public FileTree(string name)
+        {
+            dirName = name;
+        }
     }
 
 
     class FileDublicateSort
     {
-        //SortedSet<string> fileNames = new SortedSet<string>();
+
+        FileTree fileTreeSort;
+
+        List<string> fileCopies = new List<string>();
+        SortedSet<string> fileOriginals = new SortedSet<string>();
         SortedSet<string> fileContent = new SortedSet<string>();
-        Files sortedFiles = new Files();
+
         private string DirName;
 
-        XmlSerializer xmlSerializer = new XmlSerializer(typeof(Files));
+        XmlSerializer xmlSerializer = new XmlSerializer(typeof(FileTree));
 
         public FileDublicateSort(string dirName)
         {
             DirName = dirName;
-            Directory.CreateDirectory(dirName + @"\COPY");
-            DublicateSort(DirName);
+            Directory.CreateDirectory(DirName + @"\COPY");
+            fileTreeSort = new FileTree(DirName);
+            DublicateSort(DirName, fileTreeSort);
+            serializeFileLists();
         }
 
-        public void ShowOriginalFiles()
+        public void ShowFinalReport()
         {
-            Console.WriteLine($"Original files ({sortedFiles.fileOriginals.Count} files): \n");
-            //foreach (var f in sortedFiles.fileOriginals)
-            //{
-            //    Console.WriteLine(f);
-            //}
+            Console.WriteLine($"Original : {fileOriginals.Count} files");
+            Console.WriteLine($"Copies : {fileCopies.Count} files");
         }
 
-        public void ShowCopies()
-        {
-            Console.WriteLine($"Copies files ({sortedFiles.fileCopies.Count} files): \n");
-            //foreach (var f in sortedFiles.fileCopies)
-            //{
-            //    Console.WriteLine(f);
-            //}
-        }
-
-        public void DublicateSort(string dirName)
+        public void DublicateSort(string dirName, FileTree fileTree)
         {
             DirectoryInfo dir = new DirectoryInfo(dirName);
             List<DirectoryInfo> dirs = dir.GetDirectories().ToList();
@@ -60,7 +64,8 @@ namespace FileDublicateSort
             {
                 foreach (var d in dirs)
                 {
-                    DublicateSort(d.FullName);
+                    fileTree.folders.Add(new FileTree(d.Name));
+                    DublicateSort(d.FullName, fileTree.folders.Last());
                 }
             }
             List<FileInfo> files = dir.GetFiles().ToList();
@@ -68,11 +73,11 @@ namespace FileDublicateSort
             {
                 foreach (var f in files)
                 {
-                    if (sortedFiles.fileOriginals.Contains(f.Name))
+                    
+                    if (fileOriginals.Contains(f.Name) )
                     {
-                        //if (!sortedFiles.fileCopies.Contains(f.Name))
-                            sortedFiles.fileCopies.Add(f.Name);
-                            
+                        fileCopies.Add(f.Name);
+                        MoveCopyFile(f);
                     }
                     else
                     {
@@ -80,11 +85,15 @@ namespace FileDublicateSort
                         {
                             if (fileContent.Add(fs.ReadToEnd()))
                             {
-                                sortedFiles.fileOriginals.Add(f.Name);
+                                fileOriginals.Add(f.Name);
+                                fileTree.files.Add(f.Name);
                             }
                             else
                             {
-                                sortedFiles.fileCopies.Add(f.Name);
+                                fileCopies.Add(f.Name);
+                                fs.Close();
+                                MoveCopyFile(f);
+                                
                             }
                         }
                         
@@ -94,9 +103,30 @@ namespace FileDublicateSort
             
         }
 
+        private void MoveCopyFile(FileInfo file)
+        {
+            string pref = "";
+            int i = 0;
+            while (true) {
+                try
+                {
+                    file.MoveTo(DirName + @"\COPY\" + pref + file.Name);
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    pref = (i++).ToString();
+                }
+            }
+        }
+
         protected void serializeFileLists()
         {
-
+            using(FileStream fs = new FileStream(DirName + @"\fileInfo.xml", FileMode.Create))
+            {
+                Console.WriteLine("Serialization done.");
+                xmlSerializer.Serialize(fs, fileTreeSort);
+            }
         }
 
     }
@@ -107,8 +137,8 @@ namespace FileDublicateSort
         static void Main(string[] args)
         {
             FileDublicateSort fds = new FileDublicateSort(@"E:\Programming\testSortingFiles");
-            fds.ShowOriginalFiles();
-            fds.ShowCopies();
+            fds.ShowFinalReport();
+
             Console.ReadKey();
         }
 
