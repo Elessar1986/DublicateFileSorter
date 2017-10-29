@@ -8,7 +8,7 @@ namespace FileDublicateSort
 {
 
     [Serializable]
-    public class FileTree
+    public class FileTree             // класс создающий дерево каталогов и файлов при сортировке
     {
         public string dirName;
         public List<FileTree> folders = new List<FileTree>();

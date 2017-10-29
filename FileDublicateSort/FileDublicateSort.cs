@@ -8,11 +8,13 @@ using System.Xml.Serialization;
 
 namespace FileDublicateSort
 {
-    class FileDublicateSort
+    class FileDublicateSort         // класс сортирующий файлы 
     {
 
-        FileTree fileTreeSort;
+        FileTree fileTreeSort;      // класс создающий дерево каталогов и файлов при сортировке
 
+
+        // колекции для сортировки файлов
         List<string> fileCopies = new List<string>();
         SortedSet<string> fileOriginals = new SortedSet<string>();
         SortedSet<string> fileContent = new SortedSet<string>();
@@ -36,7 +38,7 @@ namespace FileDublicateSort
             Console.WriteLine($"Copies : {fileCopies.Count} files");
         }
 
-        public void DublicateSort(string dirName, FileTree fileTree)
+        public void DublicateSort(string dirName, FileTree fileTree)        //метод сортировки
         {
             DirectoryInfo dir = new DirectoryInfo(dirName);
             List<DirectoryInfo> dirs = dir.GetDirectories().ToList();
@@ -83,7 +85,7 @@ namespace FileDublicateSort
 
         }
 
-        private void MoveCopyFile(FileInfo file)
+        private void MoveCopyFile(FileInfo file)  // перемещает копии(при совпадении имен добавляет число перед названием)
         {
             string pref = "";
             int i = 0;
@@ -101,7 +103,7 @@ namespace FileDublicateSort
             }
         }
 
-        protected void serializeFileLists()
+        protected void serializeFileLists()         // сериализация дерева в xml
         {
             using (FileStream fs = new FileStream(DirName + @"\fileInfo.xml", FileMode.Create))
             {
