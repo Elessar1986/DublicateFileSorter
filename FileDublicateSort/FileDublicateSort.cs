@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using System.Security.Cryptography;
 
 namespace FileDublicateSort
 {
@@ -15,10 +16,9 @@ namespace FileDublicateSort
 
 
         // колекции для сортировки файлов
-        List<string> fileCopies = new List<string>();
-        SortedSet<string> fileOriginals = new SortedSet<string>();
-        SortedSet<string> fileContent = new SortedSet<string>();
-
+        SortedDictionary<string,string> fileCopies = new SortedDictionary<string, string>();
+        SortedDictionary<string, string> fileOriginals = new SortedDictionary<string, string>();
+        
         private string DirName;
 
         XmlSerializer xmlSerializer = new XmlSerializer(typeof(FileTree));
@@ -55,32 +55,30 @@ namespace FileDublicateSort
             {
                 foreach (var f in files)
                 {
-
-                    if (fileOriginals.Contains(f.Name))
+                    string hash = GetMD5Hash(f.FullName);
+                    if (!fileOriginals.Keys.Contains(hash))
                     {
-                        fileCopies.Add(f.Name);
-                        MoveCopyFile(f);
+                        fileOriginals.Add(hash, f.FullName);
                     }
                     else
                     {
-                        using (StreamReader fs = new StreamReader(f.FullName))
-                        {
-                            if (fileContent.Add(fs.ReadToEnd()))
-                            {
-                                fileOriginals.Add(f.Name);
-                                fileTree.files.Add(f.Name);
-                            }
-                            else
-                            {
-                                fileCopies.Add(f.Name);
-                                fs.Close();
-                                MoveCopyFile(f);
-
-                            }
-                        }
-
+                        fileCopies.Add(hash, f.FullName);
+                        MoveCopyFile(f);
                     }
                 }
+            }
+
+        }
+
+        private string GetMD5Hash(string file)
+        {
+            using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read))
+            {
+                MD5 md5 = new MD5CryptoServiceProvider();
+                byte[] fileBytes = new byte[fs.Length];
+                fs.Read(fileBytes, 0, (int)fs.Length);
+                byte[] hash = md5.ComputeHash(fileBytes);
+                return BitConverter.ToString(hash);
             }
 
         }
