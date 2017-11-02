@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
+using System.Diagnostics;
 
 namespace FileDublicateSort
 {
@@ -25,10 +26,14 @@ namespace FileDublicateSort
 
         public FileDublicateSort(string dirName)
         {
+            Stopwatch sw = new Stopwatch();
             DirName = dirName;
             Directory.CreateDirectory(DirName + @"\COPY");
             fileTreeSort = new FileTree(DirName);
+            sw.Start();
             DublicateSort(DirName, fileTreeSort);
+            sw.Stop();
+            Console.WriteLine($"Sort time: {sw.ElapsedMilliseconds/10}");
             serializeFileLists();
         }
 
