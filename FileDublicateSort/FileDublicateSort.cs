@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
 using System.Security.Cryptography;
+using System.Diagnostics;
 
 namespace FileDublicateSort
 {
@@ -16,8 +17,8 @@ namespace FileDublicateSort
 
 
         // колекции для сортировки файлов
-        SortedDictionary<string,string> fileCopies = new SortedDictionary<string, string>();
         SortedDictionary<string, string> fileOriginals = new SortedDictionary<string, string>();
+        private static int Copies = 0;
         
         private string DirName;
 
@@ -25,17 +26,22 @@ namespace FileDublicateSort
 
         public FileDublicateSort(string dirName)
         {
+            Stopwatch sw = new Stopwatch();
             DirName = dirName;
             Directory.CreateDirectory(DirName + @"\COPY");
             fileTreeSort = new FileTree(DirName);
+            sw.Start();
             DublicateSort(DirName, fileTreeSort);
+            sw.Stop();
+            Console.WriteLine($"Sort time: {sw.ElapsedMilliseconds/10}");
             serializeFileLists();
         }
 
         public void ShowFinalReport()
         {
+            Console.WriteLine($"All sorted files: {fileOriginals.Count + Copies}");
             Console.WriteLine($"Original : {fileOriginals.Count} files");
-            Console.WriteLine($"Copies : {fileCopies.Count} files");
+            Console.WriteLine($"Copies : {Copies} files");
         }
 
         public void DublicateSort(string dirName, FileTree fileTree)        //метод сортировки
@@ -56,14 +62,15 @@ namespace FileDublicateSort
                 foreach (var f in files)
                 {
                     string hash = GetMD5Hash(f.FullName);
-                    if (!fileOriginals.Keys.Contains(hash))
+                    if (!fileOriginals.Values.Contains(f.Name) && !fileOriginals.Keys.Contains(hash))
                     {
-                        fileOriginals.Add(hash, f.FullName);
+                        fileOriginals.Add(hash, f.Name);
+                        fileTree.files.Add(f.Name);
                     }
                     else
                     {
-                        fileCopies.Add(hash, f.FullName);
                         MoveCopyFile(f);
+                        Copies++;
                     }
                 }
             }
@@ -78,7 +85,7 @@ namespace FileDublicateSort
                 byte[] fileBytes = new byte[fs.Length];
                 fs.Read(fileBytes, 0, (int)fs.Length);
                 byte[] hash = md5.ComputeHash(fileBytes);
-                return BitConverter.ToString(hash);
+                return BitConverter.ToString(hash).Replace("-",String.Empty);
             }
 
         }
